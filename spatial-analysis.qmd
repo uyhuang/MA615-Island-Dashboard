@@ -1,0 +1,553 @@
+---
+title: "spatial data 2"
+author: "MA615"
+format: revealjs
+editor: visual
+---
+
+## Spatial Data {.scrollable}
+
+### Two basic kinds of spatial data:
+
+**Vector data:** discrete locations (points, lines or polygons) with an associated geometry or shape, and some attributes with information about the locations. <br><br> **Raster data:** grid of values rendered on a map as pixels. Rasters can be continous (i.e. elevation, precipitation, atmospheric deposition) or categorical (i.e. land use, soil type). Rasters can also be image based rasters. <br><br> Presentation source: [Fundamentals of Spatial Analysis in R](https://mhweber.github.io/AWRA_2020_R_Spatial) Marc Weber 2020-08-10
+
+## Spatial analysis packages in R
+
+```{r}
+#| label: spatial packages in R downloads
+#| echo: false
+#| eval: true
+
+# devtools::install_github("metacran/cranlogs")
+library(cranlogs, quietly = T)
+library(lubridate, quietly = T)
+library(tidyverse, quietly = T)
+
+options(scipen=3)
+stats <- cran_downloads(from = "2018-01-01", to = "2020-04-01",packages = c("sp", "sf", "raster", "tmap", "mapview", "leaflet", "ggmap", "stars"))
+
+monthly_stats <- stats %>% 
+  group_by(month=floor_date(date, "month"), package) %>%
+  summarize(amount=sum(count))
+ggplot(monthly_stats, aes(x=month, y=amount, group = package, colour = package)) + geom_line(size=1.5) + scale_colour_brewer(palette="Set1") + ggtitle("R Monthly Spatial Package \n Downloads since 2018") +
+  theme(text=element_text(size=16))
+
+# theme(axis.text=element_text(size=12),
+#         axis.title=element_text(size=14,face="bold")
+
+```
+
+## Simple example Vector data {.scrollable}
+
+**Cites with population, a polygon, and a legend**
+
+```{r}
+#| label: Simple example -- plot
+#| echo: false
+#| eval: true
+
+## data
+cities <- c('Ashland','Corvallis','Bend','Portland','Newport')
+longitude <- c(-122.699, -123.275, -121.313, -122.670, -124.054)
+latitude <- c(42.189, 44.57, 44.061, 45.523, 44.652)
+population <- c(20062,50297,61362,537557,9603)
+
+## map to the x,y plane
+locs <- cbind(longitude, latitude) 
+
+## plot points 
+plot(locs, cex=sqrt(population*.0002), pch=20, col='red', 
+  main='Population', xlim = c(-124,-120.5), ylim = c(42, 46))
+text(locs, cities, pos=4)
+
+# Add a legend
+breaks <- c(20000, 50000, 60000, 100000)
+options(scipen=3)
+legend("topright", legend=breaks, pch=20, pt.cex=1+breaks/20000, 
+  col='red', bg='gray')
+
+# Add polygon
+lon <- c(-123.5, -123.5, -122.5, -122.670, -123)
+lat <- c(43, 45.5, 44, 43, 43)
+x <- cbind(lon, lat)
+polygon(x, border='blue')
+lines(x, lwd=3, col='red')
+points(x, cex=2, pch=20)
+
+
+```
+
+## Code
+
+::: {style="font-size: 14"}
+```{r}
+#| label: Simple example - code
+#| echo: true
+#| eval: false
+
+## data
+cities <- c('Ashland','Corvallis','Bend','Portland','Newport')
+longitude <- c(-122.699, -123.275, -121.313, -122.670, -124.054)
+latitude <- c(42.189, 44.57, 44.061, 45.523, 44.652)
+population <- c(20062,50297,61362,537557,9603)
+
+## map to the x,y plane
+locs <- cbind(longitude, latitude) 
+
+## plot points 
+plot(locs, cex=sqrt(population*.0002), pch=20, col='red', 
+  main='Population', xlim = c(-124,-120.5), ylim = c(42, 46))
+text(locs, cities, pos=4)
+
+# Add a legend
+breaks <- c(20000, 50000, 60000, 100000)
+options(scipen=3)
+legend("topright", legend=breaks, pch=20, pt.cex=1+breaks/20000, 
+  col='red', bg='gray')
+
+# Add polygon
+lon <- c(-123.5, -123.5, -122.5, -122.670, -123)
+lat <- c(43, 45.5, 44, 43, 43)
+x <- cbind(lon, lat)
+polygon(x, border='blue')
+lines(x, lwd=3, col='red')
+points(x, cex=2, pch=20)
+
+
+```
+:::
+
+## Simple raster example {.scrollable}
+
+```{r}
+#| label: simple raster example
+#| echo: true
+#| eval: true
+
+# numeric matrix
+x <- matrix(runif(35), ncol=5) 
+
+## format table output
+library(knitr)
+library(kableExtra)
+
+rownames(x) <- as.character(1:7)
+
+x |> kable(digits = 3, 
+           centering =  F,
+           position = "left",
+           col.names = as.character(1:5),
+           row.names = T,
+           caption = "<b>x</b>",
+           table.attr = "style='width:30%;'") |>
+  
+      kable_styling(font_size = 24, position="left") |>
+
+          column_spec(1, 
+                bold = TRUE, 
+                width = "1em") |>
+  
+          column_spec(2:6, width = "4em")
+```
+
+## Matrix rendered as a choropleth
+
+```{r}
+#| label: simple raster plot
+#| echo: true
+
+library('plot.matrix', quietly = TRUE)
+
+#> [1] "matrix"
+par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
+plot(x)
+
+
+
+```
+
+## Spatial Packages
+
+**sp** see notes from last week. ggplot2 geom
+
+**sf** "Tidy-compliant" package for working with vector data
+
+**raster** spatial package for working with raster data
+
+**mapview** wrapper package for R leaflet package
+
+**ggplot** and **tmap** - static plotting and thematic maping -
+
+See the [R Spatial Task View](https://cran.r-project.org/view=Spatial) for current and comprehensive information about R packages for working with spatial data.
+
+## tmap static map {.smaller .scrollable}
+
+```{r}
+#| label: texas static
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tmap)
+library(sf)
+library(tigris)
+
+counties <- counties("Texas", cb = TRUE)
+counties$area <- as.numeric(st_area(counties))
+
+tex <- tm_shape(counties) +
+  tm_polygons("area", 
+              style="quantile", 
+              title="Texas Counties Area")
+
+```
+
+------------------------------------------------------------------------
+
+### Texas Counties
+
+```{r}
+
+tex
+
+```
+
+## tmap geocoding
+
+```{r}
+#| label: tmap
+#| echo: true
+
+
+# uses OSM
+library(tmap)
+library(tmaptools)
+
+tex_cap <-tmaptools::geocode_OSM("Texas Capital USA", 
+        as.sf = TRUE) %>% 
+  glimpse()
+
+
+```
+
+## mapview interactive map
+
+```{r}
+#| label: mapview interactive
+#| echo: true
+
+library(mapview)
+mapview(tex_cap, col="red", col.regions = "red") + mapview(counties, alpha.regions = .1)
+
+
+```
+
+## Reading spatial data in R {.smaller .scrollable}
+
+### sources
+
+local or downloaded files, R packages, API, Converted flat files with (x,y) data, Geocoding data
+
+#### three packages for reading and writing spatial data
+
+**For Vector formats: sf or rgdal** Both packages use **OGR**, which is a library under the **GDAL** source tree
+
+-   ESRI Shapefiles\
+-   GeoJSON\
+-   GPX
+
+**For Raster formats: Raster**
+
+-   GeoTIFF or
+-   ESRI or
+-   ASCII grid using GDAL under the hood
+
+## generate a list with st_drivers() {.smaller .scrollable}
+
+```{r}
+library(knitr)
+library(sf)
+library(rgdal)
+print(paste0('There are ',st_drivers("vector") %>% nrow(), ' vector drivers available using st_read or read_sf'))
+
+kable(head(ogrDrivers(),n=5))
+
+```
+
+## Vector drivers {.smaller .scrollable}
+
+```{r}
+kable(head(st_drivers(what='vector'),n=5))
+```
+
+## raster drivers {.smaller .scrollable}
+
+```{r}
+
+
+library(knitr)
+print(paste0('There are ',st_drivers(what='raster') %>% nrow(), ' raster drivers available'))
+
+kable(head(st_drivers(what='raster'),n=5))
+
+```
+
+## Reading vector data with **sf** {.smaller .scrollable}
+
+### Sources
+
+-   Shapefiles\
+-   Geodatabases\
+-   Geopackages\
+-   Geojson\
+-   Spatial database files
+
+## Shapefiles {.scrollable}
+
+```{r}
+#| label: shapefiles
+#| echo: true
+#| eval: false
+
+# alternative https://geohub.oregon.gov/ go to resources
+# search for city limits 
+
+## note you should use shx
+library(sf)
+sink <- capture.output(sf::sf_use_s2(FALSE))
+
+citylims <- st_read("City_Limits.shx") 
+
+options(scipen=3)
+plot(citylims$geometry, axes=T, main='Oregon City Limits') # plot it!
+
+```
+
+## Oregon city limits map {.scrollable}
+
+```{r}
+#| label: shapefiles - oregon city limits
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+# alternative https://geohub.oregon.gov/ go to resources
+# search for city limits 
+
+## note you should use shx
+library(sf) 
+citylims <- st_read("City_Limits.shx") 
+
+options(scipen=3)
+plot(citylims$geometry, axes=T, main='Oregon City Limits') # plot it!
+
+```
+
+## Geodatabases
+
+```{r}
+#| label: OR Stat Parks code
+#| echo: true
+#| eval: false
+
+fgdb = "9f46968f-170d-4ba7-8ff8-e1e13b653478.gdb"
+
+parks <- st_read("9f46968f-170d-4ba7-8ff8-e1e13b653478.gdb")
+
+# List all feature classes in a file geodatabase
+st_layers(fgdb)
+
+ggplot(parks) + geom_sf()
+
+
+
+```
+
+```{r}
+#| label: OR Stat Parks map
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+fgdb = "9f46968f-170d-4ba7-8ff8-e1e13b653478.gdb"
+
+parks <- st_read("9f46968f-170d-4ba7-8ff8-e1e13b653478.gdb")
+
+# List all feature classes in a file geodatabase
+st_layers(fgdb)
+
+ggplot(parks) + geom_sf()
+
+
+
+```
+
+## Geopackages {.smaller .scrollable}
+
+```{r}
+
+nc <- system.file("gpkg/nc.gpkg", package="sf") %>% read_sf() # reads in
+glimpse(nc)
+
+```
+
+## Spatial data from R packages {.smaller .scrollable}
+
+Table 2.1: Example R packages for spatial data retrieval.
+
+```{r}
+#| label: R pkgs for sp data retrieval
+
+
+table_rpkg <- read.csv("map data in R packages.csv",
+                        header = T, stringsAsFactors = F)
+kable(table_rpkg, caption = "R packages for spatial data retrieval") |>
+   kable_styling(font_size = 16) 
+
+```
+
+## Reading raster data {.smaller .scrollable}
+
+Using the getData() function to download elevation into a RasterLayer
+
+```{r}
+#| label: Raster
+
+library(raster)
+US <- getData("GADM",country="USA",level=2)
+Benton <- US[US$NAME_1=='Oregon' & US$NAME_2=='Benton',]
+elev <- getData('SRTM', lon=-123, lat=44)
+elev <- crop(elev, Benton)
+elev <- mask(elev, Benton)
+plot(Benton, main="Elevation (m) in Benton County, Oregon", axes=T)
+plot(elev, add=TRUE)
+plot(Benton, add=TRUE)
+
+
+
+
+
+```
+
+## Read in OpenStreetMap data {.smaller .scrollable}
+
+```{r}
+#| label: open street map code
+#| echo: true
+#| eval: false
+
+library(osmdata)
+library(mapview)
+
+footway <- opq(bbox = "corvallis oregon") %>% 
+  add_osm_feature(key = "highway", value = "footway") %>% 
+  osmdata_sf()
+footway <- footway$osm_lines
+mapview(footway$geometry)
+
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| label: open street map
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+library(osmdata)
+library(mapview)
+
+footway <- opq(bbox = "corvallis oregon") %>% 
+  add_osm_feature(key = "highway", value = "footway") %>% 
+  osmdata_sf()
+footway <- footway$osm_lines
+mapview(footway$geometry)
+
+```
+
+## Corvalis {.smaller .scrollable}
+
+```{r}
+#| label: Corvalis code
+#| echo: true
+#| eval: false
+
+
+library(osmdata)
+library(mapview)
+rstrnts <- opq(bbox = "corvallis oregon") %>% 
+    add_osm_feature(key = "amenity", value = "restaurant") %>%
+    osmdata_sf()
+rstrnts <- rstrnts$osm_points
+
+mapview(rstrnts$geometry)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| label: Corvalis map
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+
+library(osmdata)
+library(mapview)
+rstrnts <- opq(bbox = "corvallis oregon") %>% 
+    add_osm_feature(key = "amenity", value = "restaurant") %>%
+    osmdata_sf()
+rstrnts <- rstrnts$osm_points
+
+mapview(rstrnts$geometry)
+
+```
+
+## Mapping from flat files
+
+```{r}
+#| label: data from flat files code
+#| echo: true
+#| eval: false
+
+library(devtools)
+library(readr)
+library(ggplot2)
+#install_github("mhweber/awra2020spatial", force=TRUE)
+library(awra2020spatial)
+gages = read_csv(system.file("extdata/Gages_flowdata.csv", package = "awra2020spatial"))
+
+gages_sf <- gages %>%
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269, remove = FALSE) %>%
+  dplyr::select(STATION_NM,LON_SITE, LAT_SITE)
+
+ggplot() + geom_sf(data=gages_sf)
+```
+
+------------------------------------------------------------------------
+
+```{r}
+#| label: data from flat files map
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+
+library(devtools)
+library(readr)
+library(ggplot2)
+#install_github("mhweber/awra2020spatial", force=TRUE)
+library(awra2020spatial)
+gages = read_csv(system.file("extdata/Gages_flowdata.csv", package = "awra2020spatial"))
+
+gages_sf <- gages %>%
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269, remove = FALSE) %>%
+  dplyr::select(STATION_NM,LON_SITE, LAT_SITE)
+
+ggplot() + geom_sf(data=gages_sf)
+```
