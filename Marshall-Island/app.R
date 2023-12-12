@@ -5,13 +5,23 @@ library(shiny)
 library(shinydashboard)
 library(leaflet)
 
-# Define UI using shinydashboard
+# Define UI
 ui <- dashboardPage(
   dashboardHeader(title = "Marshall Islands Overview", titleWidth = 250),
   dashboardSidebar(
     width = 250,
+    tags$head(
+      tags$style(HTML("
+      .skin-blue .main-sidebar {background-color: #4D5360; /* Dark grey background */}
+      .skin-blue .sidebar-menu li a {color: #FFFFFF; /* White text color */}
+      .main-sidebar {font-family: 'Comic Sans MS', sans-serif;}
+      .sidebar-menu li a {font-size: 15px; /* Larger font size */}
+                      ")),
+      tags$link(href = "https://fonts.googleapis.com/css?family=Your+Font+Family", 
+                rel = "stylesheet", 
+                type = "text/css")),
     sidebarMenu(
-      id = "sidebar", # Important: add an id to the sidebarMenu
+      id = "sidebar", # Important: add an id to the sidebarMenu #does something
       menuItem("Homepage", tabName = "homepage", icon = icon("home")),
       menuItem("General Description", tabName = "general", icon = icon("info-circle"), startExpanded = TRUE,
                menuSubItem("Map", tabName = "map", icon = icon("map-marker")),
@@ -23,18 +33,32 @@ ui <- dashboardPage(
       menuItem("SWOT Analysis", tabName = "swot", icon = icon("table"))
     )
   ),
-  dashboardBody(
-    # Use uiOutput to render the appropriate UI component based on the menuItem selected
-    uiOutput("tabContent")
+  
+    dashboardBody(
+      uiOutput("pageContent")
   )
 )
 
 # Define server logic
 server <- function(input, output) { 
-  output$tabContent <- renderUI({
+  output$pageContent <- renderUI({
     # Switch between the menu items based on the sidebar input
     switch(input$sidebar,
-           "homepage" = h2("Welcome to Marshall Islands!"),
+           "homepage" = div(
+             div(class = "overlay-text",
+                 style = 'position: absolute;',
+                 style = 'transform: translate(70%,50%);',
+                 h2("Welcome to"),
+                 h1("Marshall Islands"),
+                 style = "text-align: center;"
+                 ),
+             img(src = "https://www.state.gov/wp-content/uploads/2022/02/Marshall-Islands-2048x1536.jpg",
+                 height = "500px",
+                 width = "100%",
+                 # hspace = "0%", 
+                 # wspace = "0%",
+                 style = "position: center;")
+           ),
            "general" = h2("General Description Content"),
            "map" = {
              fluidRow(
@@ -53,7 +77,7 @@ server <- function(input, output) {
     )
   })
   
-  # Render the leaflet map with a circle marker approximating the Marshall Islands
+
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$CartoDB.Positron) %>%
