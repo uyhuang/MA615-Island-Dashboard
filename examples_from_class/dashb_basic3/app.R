@@ -11,7 +11,7 @@ ui <- dashboardPage(
                tabName = "dashboard",
                icon = icon("dashboard")),
       
-      menuItem("widgets", 
+      menuItem("Widgets", 
                tabName = "widgets", 
                icon = icon("th"))
     )
